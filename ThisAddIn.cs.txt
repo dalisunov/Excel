@@ -13,13 +13,19 @@ namespace AddInVSTO
     public partial class ThisAddIn
     {
 
-        #region Код инициализации надстройки и завершения
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
             try
             {
                 // Например, подключение событий Excel
                 this.Application.WorkbookOpen += Application_WorkbookOpen;
+
+                // Автоматическая активация чекбокса при запуске
+                var customRibbon = Globals.Ribbons.GetRibbon<UserCustomRibbon>();
+                if (customRibbon != null)
+                {
+                    customRibbon.EnableCheckBox = true;
+                }
             }
             catch (Exception ex)
             {
@@ -40,7 +46,7 @@ namespace AddInVSTO
         {
             return new UserCustomRibbon();
         }
-        #endregion
+        
 
 
         #region Код, автоматически созданный VSTO
@@ -58,3 +64,4 @@ namespace AddInVSTO
         #endregion
     }
 }
+
