@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System;
 using System.Reflection;
+using System.Windows.Forms;
 
 namespace AddInVSTO
 {
@@ -14,6 +15,25 @@ namespace AddInVSTO
         private Office.IRibbonUI ribbon;
         private WorkbooksClass workbooks;
         private Excel.Application excelApp;
+
+        public bool EnableCheckBox { get; set; } = true;
+
+        public void OnCheckBoxToggle(Office.IRibbonControl control, bool isPressed)
+        {
+            EnableCheckBox = isPressed;
+        }
+
+        public void OnComboBoxChange(Office.IRibbonControl control, string selectedItem)
+        {
+            if (!EnableCheckBox)
+            {
+                MessageBox.Show("Пожалуйста, активируйте чекбокс, чтобы использовать этот параметр.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Обработка изменения значения в ComboBox
+            System.Diagnostics.Debug.WriteLine($"Выбранный параметр: {selectedItem}");
+        }
 
         public UserCustomRibbon()
         {

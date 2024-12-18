@@ -1,0 +1,102 @@
+using System;
+using System.IO;
+using System.Security.AccessControl;
+using System.Text.RegularExpressions;
+
+namespace AddInMain
+{
+    public class ValidatorClass
+    {
+        // Метод проверки существования папки
+        public bool FolderExists(string folderPath)
+        {
+            return Directory.Exists(folderPath);
+        }
+
+        // Метод проверки существования файла
+        public bool FileExists(string filePath)
+        {
+            return File.Exists(filePath);
+        }
+
+        // Метод проверки доступа к папке
+        public bool CanAccessFolder(string folderPath)
+        {
+            try
+            {
+                DirectorySecurity ds = Directory.GetAccessControl(folderPath);
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        // Метод проверки доступа к файлу
+        public bool CanAccessFile(string filePath)
+        {
+            try
+            {
+                FileSecurity fs = File.GetAccessControl(filePath);
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        // Метод проверки допустимых символов в имени Workbook
+        public bool IsValidWorkbookName(string workbookName)
+        {
+            string invalidChars = new string(Path.GetInvalidFileNameChars());
+            Regex regex = new Regex($"[{Regex.Escape(invalidChars)}]");
+            return !regex.IsMatch(workbookName);
+        }
+
+        // Метод проверки допустимых символов в имени папки
+        public bool IsValidFolderName(string folderName)
+        {
+            string invalidChars = new string(Path.GetInvalidPathChars());
+            Regex regex = new Regex($"[{Regex.Escape(invalidChars)}]");
+            return !regex.IsMatch(folderName);
+        }
+
+        // Метод проверки допустимых символов в имени файла
+        public bool IsValidFileName(string fileName)
+        {
+            string invalidChars = new string(Path.GetInvalidFileNameChars());
+            Regex regex = new Regex($"[{Regex.Escape(invalidChars)}]");
+            return !regex.IsMatch(fileName);
+        }
+
+        // Метод проверки длины ввода для имени Workbook
+        public bool IsValidWorkbookNameLength(string workbookName, int maxLength)
+        {
+            return workbookName.Length <= maxLength;
+        }
+
+        // Метод проверки уникальности имени среди папок (проверяется конечный каталог)
+        public bool IsUniqueFolderName(string folderPath, string folderName)
+        {
+            string fullPath = Path.Combine(folderPath, folderName);
+            return !Directory.Exists(fullPath);
+        }
+
+        // Метод проверки уникальности имени среди файлов одного типа в одной папке
+        public bool IsUniqueFileName(string folderPath, string fileName)
+        {
+            string fullPath = Path.Combine(folderPath, fileName);
+            return !File.Exists(fullPath);
+        }
+    }
+}

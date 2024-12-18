@@ -1,0 +1,67 @@
+// INPUTBOXFORM.CS
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace AddInVSTO
+{
+    public partial class InputBoxForm : Form
+    {
+        private TextBox inputTextBox;
+        private Button btnOk;
+        private Button btnCancel;
+
+        public string InputValue { get; private set; }
+
+        public InputBoxForm(string prompt)
+        {
+            InitializeComponent(prompt);
+        }
+
+        private void InitializeComponent(string prompt)
+        {
+            this.Text = prompt;
+            this.Size = new Size(320, 140);
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+
+            Label label = new Label
+            {
+                Text = prompt,
+                Location = new Point(10, 10),
+                AutoSize = true
+            };
+
+            inputTextBox = new TextBox
+            {
+                Location = new Point(10, 40),
+                Size = new Size(280, 20)
+            };
+
+            btnOk = new Button
+            {
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Location = new Point(130, 80),
+                Size = new Size(75, 23)
+            };
+            btnOk.Click += (sender, e) =>
+            {
+                InputValue = inputTextBox.Text;
+                this.Close();
+            };
+
+            btnCancel = new Button
+            {
+                Text = "Отмена",
+                DialogResult = DialogResult.Cancel,
+                Location = new Point(215, 80),
+                Size = new Size(75, 23)
+            };
+
+            this.Controls.AddRange(new Control[] { label, inputTextBox, btnOk, btnCancel });
+        }
+    }
+}

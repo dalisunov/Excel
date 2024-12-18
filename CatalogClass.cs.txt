@@ -1,0 +1,116 @@
+// CATALOGCLASS.CS
+using System;
+using System.IO;
+using System.Windows.Forms;
+using Excel = Microsoft.Office.Interop.Excel;
+
+namespace AddInMain
+{
+    public class CatalogClass
+    {
+        private Excel.Application _excelApp;
+        private string selectedFolder;
+
+        public CatalogClass(Excel.Application excelApp)
+        {
+            _excelApp = excelApp;
+            selectedFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        }
+
+        // Метод вызова формы для выбора папки на ПК
+        public string SelectFolder()
+        {
+            using (FolderBrowserDialog folderDialog = new FolderBrowserDialog())
+            {
+                DialogResult result = folderDialog.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(folderDialog.SelectedPath))
+                {
+                    selectedFolder = folderDialog.SelectedPath;
+                    return selectedFolder;
+                }
+                return null;
+            }
+        }
+
+        // Метод получения текущей выбранной папки
+        public string GetSelectedFolder()
+        {
+            return selectedFolder;
+        }
+
+        // Метод получения адреса текущей книги Excel
+        public string GetCurrentWorkbookPath()
+        {
+            if (_excelApp != null && _excelApp.ActiveWorkbook != null)
+            {
+                return _excelApp.ActiveWorkbook.FullName;
+            }
+            return null;
+        }
+
+        // Метод создания новой папки
+        public void CreateDirectory(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка создания папки: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Метод удаления папки
+        public void DeleteDirectory(string path)
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка удаления папки: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Метод копирования файла
+        public void CopyFile(string sourcePath, string destinationPath)
+        {
+            try
+            {
+                if (File.Exists(sourcePath))
+                {
+                    File.Copy(sourcePath, destinationPath, overwrite: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка копирования файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Метод перемещения файла
+        public void MoveFile(string sourcePath, string destinationPath)
+        {
+            try
+            {
+                if (File.Exists(sourcePath))
+                {
+                    File.Move(sourcePath, destinationPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка перемещения файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+    }
+}

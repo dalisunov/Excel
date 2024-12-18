@@ -1,6 +1,7 @@
 // WORKBOOKCLASS.CS
 using System;
 using System.IO;
+using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AddInVSTO
@@ -159,7 +160,19 @@ namespace AddInVSTO
                 System.Diagnostics.Debug.WriteLine("Ошибка при закрытии книги: " + ex.Message);
             }
         }
-    }
 
-    // Здесь можно добавить другие методы для работы с книгами
+        public string InputBox(string prompt, string title)
+        {
+            using (InputBoxForm inputBoxForm = new InputBoxForm(prompt))
+            {
+                if (inputBoxForm.ShowDialog() == DialogResult.OK)
+                {
+                    return inputBoxForm.InputValue;
+                }
+            }
+            return string.Empty;
+        }
+
+        // Здесь можно добавить другие методы для работы с книгами
+    }
 }
