@@ -6,30 +6,30 @@
 				<group id="SettingsGroup" label="Настройки">
 					<separator id="separator1" />
 					<box id="CheckBoxGroup" boxStyle="vertical">
-						<checkBox id="CheckBoxCatalog" label="Указывать каталог" />
-						<checkBox id="CheckBoxName" label="Указывать имя" />
-						<checkBox id="CheckBoxPrefix" label="Указывать префикс" />
+						<checkBox id="CheckBoxCatalog"
+                                  label="Указывать каталог"
+                                  getPressed="GetCheckBoxCatalogPressed"
+                                  onAction="OnCheckBoxToggle" />
+						<checkBox id="CheckBoxName"
+                                  label="Указывать имя"
+                                  getPressed="GetCheckBoxNamePressed"
+                                  onAction="OnCheckBoxToggle" />
 					</box>
 					<box id="ComboBoxGroup" boxStyle="vertical">
-						<comboBox id="ComboBoxSelectFolder" label="Выбрать:">
-							<item id="AlwaysSelect" label="Всегда выбирать" />
-							<item id="NewFolder" label="Новый каталог" />
-							<item id="CurrentFolder" label="Текущий каталог" />
-							<item id="DocumentsFolder" label="Каталог документов" />
-							<item id="DownloadsFolder" label="Каталог загрузок" />
-							<item id="DesktopFolder" label="Рабочий стол" />
-							<item id="CustomFolder" label="Пользовательский" />
-						</comboBox>
-						<comboBox id="ComboBoxSelectMethod" label="Выбрать:">
-							<item id="AlwaysManual" label="Всегда вручную" />
-							<item id="UseTemplate" label="Использовать шаблон" />
-							<item id="UseCells" label="Использовать ячейки" />
-							<item id="UseTable" label="Использовать таблицу" />
-							<item id="Automatic" label="Автоматически" />
-						</comboBox>
-						<comboBox id="ComboBoxTODO" label="Выбрать:">
-							<!-- TODO: Добавить элементы -->
-						</comboBox>
+						<comboBox id="ComboBoxSelectFolder"
+                                  label="Выбрать каталог:"
+                                  onChange="OnComboBoxChange"
+                                  getItemCount="GetComboBoxItemCount"
+                                  getItemLabel="GetComboBoxItemLabel"
+                                  getEnabled="GetComboBoxSelectFolderEnabled"
+                                  getText="GetComboBoxSelectFolderText" />
+						<comboBox id="ComboBoxSelectMethod"
+                                  label="Метод:"
+                                  onChange="OnComboBoxChange"
+                                  getItemCount="GetComboBoxItemCount"
+                                  getItemLabel="GetComboBoxItemLabel"
+                                  getEnabled="GetComboBoxSelectMethodEnabled"
+                                  getText="GetComboBoxSelectMethodText" />
 					</box>
 					<separator id="separator2" />
 				</group>

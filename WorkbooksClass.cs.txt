@@ -8,29 +8,119 @@ namespace AddInVSTO
 {
     public class WorkbooksClass
     {
-        private Excel.Application _excelApp;
+        private readonly Excel.Application _excelApp;
+        private readonly UserCustomRibbon _ribbon;
 
-        public WorkbooksClass(Excel.Application excelApp)
+        public WorkbooksClass(Excel.Application excelApp, UserCustomRibbon ribbon)
         {
             _excelApp = excelApp;
+            _ribbon = ribbon;
         }
 
+        // Метод для обработки выбора каталога
+        public string HandleDirectoryOption()
+        {
+            string selectedPath = string.Empty;
+
+            if (_ribbon.IsSpecifyDirectory)
+            {
+                switch (_ribbon.SelectedDirectoryOption)
+                {
+                    case "Всегда выбирать":
+                        selectedPath = SelectFolder();
+                        break;
+                    case "Новый каталог":
+                        selectedPath = Path.Combine(GlobalParameters.StoragePath, "НовыйКаталог");
+                        CreateDirectory(selectedPath);
+                        break;
+                    case "Текущий каталог":
+                        if (_excelApp.ActiveWorkbook != null)
+                        {
+                            selectedPath = Path.GetDirectoryName(_excelApp.ActiveWorkbook.FullName);
+                        }
+                        break;
+                    case "Каталог документу":
+                        selectedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Excel");
+                        if (!Directory.Exists(selectedPath))
+                        {
+                            CreateDirectory(selectedPath);
+                        }
+                        break;
+                    case "Каталог загрузки":
+                        selectedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                        break;
+                    case "Пользовательский":
+                        selectedPath = GlobalParameters.CustomDirectory;
+                        break;
+                    default:
+                        selectedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Excel");
+                        break;
+                }
+            }
+            else
+            {
+                // Если чекбокс не активен, используем папку "Документы"
+                selectedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Excel");
+            }
+
+            return selectedPath;
+        }
+
+        // Метод выбора папки пользователем
+        private string SelectFolder()
+        {
+            using (FolderBrowserDialog folderDialog = new FolderBrowserDialog())
+            {
+                DialogResult result = folderDialog.ShowDialog();
+                if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(folderDialog.SelectedPath))
+                {
+                    return folderDialog.SelectedPath;
+                }
+            }
+            return string.Empty;
+        }
+
+        // Метод создания директории
+        private void CreateDirectory(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка создания папки: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Пример обновленного метода создания книги
         public void CreateWorkbook()
         {
-            if (_excelApp == null)
+            string directoryPath = HandleDirectoryOption();
+
+            if (_ribbon.IsSpecifyDirectory && _ribbon.SelectedDirectoryOption == "Всегда выбирать")
             {
-                System.Diagnostics.Debug.WriteLine("Excel application instance is null.");
-                return;
+                if (string.IsNullOrEmpty(directoryPath))
+                {
+                    // Пользователь отменил выбор каталога
+                    return;
+                }
             }
 
             try
             {
-                // Создаём новую книгу
-                _excelApp.Workbooks.Add();
+                // Создаем новую книгу
+                Excel.Workbook newWorkbook = _excelApp.Workbooks.Add();
+                string workbookPath = Path.Combine(directoryPath, $"НоваяКнига_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+                newWorkbook.SaveAs(workbookPath);
+                MessageBox.Show($"Новая книга создана: {workbookPath}", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Ошибка при создании книги: " + ex.Message);
+                MessageBox.Show($"Ошибка при создании книги: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
@@ -40,53 +130,79 @@ namespace AddInVSTO
             }
         }
 
+        // Пример обновленного метода удаления книги
         public void DeleteWorkbook()
         {
             if (_excelApp == null || _excelApp.ActiveWorkbook == null)
             {
-                System.Diagnostics.Debug.WriteLine("No active workbook to delete.");
+                System.Diagnostics.Debug.WriteLine("Нет активной книги для удаления.");
                 return;
+            }
+
+            string directoryPath = HandleDirectoryOption();
+
+            if (_ribbon.IsSpecifyDirectory && _ribbon.SelectedDirectoryOption == "Всегда выбирать")
+            {
+                if (string.IsNullOrEmpty(directoryPath))
+                {
+                    // Пользователь отменил выбор каталога
+                    return;
+                }
             }
 
             try
             {
                 Excel.Workbook activeWorkbook = _excelApp.ActiveWorkbook;
                 string workbookName = activeWorkbook.Name;
+                string workbookPath = activeWorkbook.FullName;
 
-                // Показываем диалог подтверждения независимо от статуса сохранения
-                var result = System.Windows.Forms.MessageBox.Show(
-                    $"Вы уверены, что хотите удалить книгу {workbookName}?{Environment.NewLine}" +
-                    (!activeWorkbook.Saved ? Environment.NewLine + "ВНИМАНИЕ: В книге есть несохраненные изменения!" : ""),
+                var result = MessageBox.Show(
+                    $"Вы уверены, что хотите удалить книгу {workbookName}?",
                     "Удаление книги",
-                    System.Windows.Forms.MessageBoxButtons.YesNo,
-                    System.Windows.Forms.MessageBoxIcon.Warning
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning
                 );
 
-                if (result == System.Windows.Forms.DialogResult.Yes)
+                if (result == DialogResult.Yes)
                 {
-                    // Закрываем книгу без сохранения
                     activeWorkbook.Close(SaveChanges: false);
-                    System.Diagnostics.Debug.WriteLine($"Книга {workbookName} удалена.");
+                    if (File.Exists(workbookPath))
+                    {
+                        File.Delete(workbookPath);
+                        MessageBox.Show($"Книга {workbookName} удалена.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show(
+                MessageBox.Show(
                     $"Ошибка при удалении книги: {ex.Message}",
                     "Ошибка",
-                    System.Windows.Forms.MessageBoxButtons.OK,
-                    System.Windows.Forms.MessageBoxIcon.Error
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
                 );
                 System.Diagnostics.Debug.WriteLine("Ошибка при удалении книги: " + ex.Message);
             }
         }
 
+        // Пример обновленного метода закрытия книги
         public void CloseWorkbook()
         {
             if (_excelApp == null || _excelApp.ActiveWorkbook == null)
             {
-                System.Diagnostics.Debug.WriteLine("No active workbook to close.");
+                System.Diagnostics.Debug.WriteLine("Нет активной книги для закрытия.");
                 return;
+            }
+
+            string directoryPath = HandleDirectoryOption();
+
+            if (_ribbon.IsSpecifyDirectory && _ribbon.SelectedDirectoryOption == "Всегда выбирать")
+            {
+                if (string.IsNullOrEmpty(directoryPath))
+                {
+                    // Пользователь отменил выбор каталога
+                    return;
+                }
             }
 
             try
@@ -94,27 +210,25 @@ namespace AddInVSTO
                 Excel.Workbook activeWorkbook = _excelApp.ActiveWorkbook;
                 string workbookName = activeWorkbook.Name;
 
-                // Проверяем, есть ли несохраненные изменения
                 if (!activeWorkbook.Saved)
                 {
-                    var saveResult = System.Windows.Forms.MessageBox.Show(
+                    var saveResult = MessageBox.Show(
                         $"Сохранить изменения в книге {workbookName}?",
                         "Сохранение изменений",
-                        System.Windows.Forms.MessageBoxButtons.YesNoCancel,
-                        System.Windows.Forms.MessageBoxIcon.Question
+                        MessageBoxButtons.YesNoCancel,
+                        MessageBoxIcon.Question
                     );
 
-                    if (saveResult == System.Windows.Forms.DialogResult.Cancel)
+                    if (saveResult == DialogResult.Cancel)
                     {
                         return;
                     }
 
-                    if (saveResult == System.Windows.Forms.DialogResult.Yes)
+                    if (saveResult == DialogResult.Yes)
                     {
-                        // Если книга никогда не сохранялась, показываем диалог сохранения
-                        if (activeWorkbook.Path == "")
+                        if (string.IsNullOrEmpty(activeWorkbook.Path))
                         {
-                            activeWorkbook.Save();
+                            activeWorkbook.SaveAs(Path.Combine(HandleDirectoryOption(), workbookName));
                         }
                         else
                         {
@@ -133,11 +247,11 @@ namespace AddInVSTO
                             }
                             catch (Exception ex)
                             {
-                                System.Windows.Forms.MessageBox.Show(
+                                MessageBox.Show(
                                     $"Ошибка при создании резервной копии: {ex.Message}\nФайл будет сохранен без резервной копии.",
                                     "Предупреждение",
-                                    System.Windows.Forms.MessageBoxButtons.OK,
-                                    System.Windows.Forms.MessageBoxIcon.Warning
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Warning
                                 );
                                 activeWorkbook.Save();
                             }
@@ -145,34 +259,21 @@ namespace AddInVSTO
                     }
                 }
 
-                // Закрываем книгу
-                activeWorkbook.Close(SaveChanges: false); // SaveChanges: false, так как мы уже сохранили если нужно
-                System.Diagnostics.Debug.WriteLine($"Книга {workbookName} закрыта.");
+                activeWorkbook.Close(SaveChanges: false);
+                MessageBox.Show($"Книга {workbookName} закрыта.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                System.Windows.Forms.MessageBox.Show(
+                MessageBox.Show(
                     $"Ошибка при закрытии книги: {ex.Message}",
                     "Ошибка",
-                    System.Windows.Forms.MessageBoxButtons.OK,
-                    System.Windows.Forms.MessageBoxIcon.Error
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
                 );
                 System.Diagnostics.Debug.WriteLine("Ошибка при закрытии книги: " + ex.Message);
             }
         }
 
-        public string InputBox(string prompt, string title)
-        {
-            using (InputBoxForm inputBoxForm = new InputBoxForm(prompt))
-            {
-                if (inputBoxForm.ShowDialog() == DialogResult.OK)
-                {
-                    return inputBoxForm.InputValue;
-                }
-            }
-            return string.Empty;
-        }
-
-        // Здесь можно добавить другие методы для работы с книгами
+        // Дополнительные методы создания, копирования и т.д. должны быть обновлены аналогично.
     }
 }

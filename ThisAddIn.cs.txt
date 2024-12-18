@@ -1,30 +1,36 @@
 // THISADDIN.CS
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Xml.Linq;
-using Excel = Microsoft.Office.Interop.Excel;
+using System.Windows.Forms;
+using Microsoft.Office.Interop.Excel;
 using Office = Microsoft.Office.Core;
-using Microsoft.Office.Tools.Excel;
 
 namespace AddInVSTO
 {
     public partial class ThisAddIn
     {
+        private UserCustomRibbon _userCustomRibbon;
+        private WorkbooksClass _workbooksClass;
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
             try
             {
-                // Например, подключение событий Excel
+                // Инициализация глобальных параметров
+                GlobalParameters.InitializeDirectories();
+
+                // Подключение событий Excel
                 this.Application.WorkbookOpen += Application_WorkbookOpen;
 
-                // Автоматическая активация чекбокса при запуске
-                var customRibbon = Globals.Ribbons.GetRibbon<UserCustomRibbon>();
-                if (customRibbon != null)
+                // Получение ссылки на Ribbon
+                _userCustomRibbon = Globals.Ribbons.GetRibbon<UserCustomRibbon>();
+
+                if (_userCustomRibbon != null)
                 {
-                    customRibbon.EnableCheckBox = true;
+                    _userCustomRibbon.IsSpecifyDirectory = true;
+                    _userCustomRibbon.SelectedDirectoryOption = "Каталог документу"; // По умолчанию
+
+                    // Инициализация WorkbooksClass с ссылкой на Ribbon
+                    _workbooksClass = new WorkbooksClass(this.Application, _userCustomRibbon);
                 }
             }
             catch (Exception ex)
@@ -33,7 +39,7 @@ namespace AddInVSTO
             }
         }
 
-        private void Application_WorkbookOpen(Excel.Workbook wb)
+        private void Application_WorkbookOpen(Workbook wb)
         {
             System.Diagnostics.Debug.WriteLine("Открыта книга: " + wb.Name);
         }

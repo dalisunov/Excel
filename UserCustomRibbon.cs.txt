@@ -16,28 +16,15 @@ namespace AddInVSTO
         private WorkbooksClass workbooks;
         private Excel.Application excelApp;
 
-        public bool EnableCheckBox { get; set; } = true;
-
-        public void OnCheckBoxToggle(Office.IRibbonControl control, bool isPressed)
-        {
-            EnableCheckBox = isPressed;
-        }
-
-        public void OnComboBoxChange(Office.IRibbonControl control, string selectedItem)
-        {
-            if (!EnableCheckBox)
-            {
-                MessageBox.Show("Пожалуйста, активируйте чекбокс, чтобы использовать этот параметр.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // Обработка изменения значения в ComboBox
-            System.Diagnostics.Debug.WriteLine($"Выбранный параметр: {selectedItem}");
-        }
+        // Свойства для хранения состояния чекбоксов и выбранных значений ComboBox
+        public bool IsSpecifyDirectory { get; set; } = true; // По умолчанию активирован
+        public string SelectedDirectoryOption { get; set; } = "Каталог документу"; // По умолчанию "Каталог документу"
+        public bool IsSpecifyName { get; set; } = true; // По умолчанию активирован
+        public string SelectedMethodOption { get; set; } = "Всегда вручную"; // По умолчанию "Всегда вручную"
 
         public UserCustomRibbon()
         {
-            // Не инициализируем excelApp и workbooks здесь
+            // Конструктор
         }
 
         #region Элементы IRibbonExtensibility
@@ -55,10 +42,6 @@ namespace AddInVSTO
             }
         }
 
-        #endregion
-
-        #region Обратные вызовы ленты
-
         public void Ribbon_Load(Office.IRibbonUI ribbonUI)
         {
             this.ribbon = ribbonUI;
@@ -67,48 +50,165 @@ namespace AddInVSTO
             {
                 // Инициализация excelApp и workbooks после загрузки ленты
                 excelApp = Globals.ThisAddIn.Application;
-                workbooks = new WorkbooksClass(excelApp);
+                workbooks = new WorkbooksClass(excelApp, this); // Передаём текущий объект UserCustomRibbon
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Ошибка при инициализации объектов Excel: " + ex.Message);
             }
+
+            // Устанавливаем значения по умолчанию при загрузке
+            SetDefaultSelections();
         }
 
+        // Метод для установки значений по умолчанию
+        private void SetDefaultSelections()
+        {
+            // Устанавливаем значение по умолчанию для ComboBoxSelectFolder
+            SelectedDirectoryOption = "Каталог документу";
+            // Устанавливаем значение по умолчанию для ComboBoxSelectMethod
+            SelectedMethodOption = "Всегда вручную";
+
+            // Инвалидируем комбобоксы, чтобы они отображали значения по умолчанию
+            ribbon.InvalidateControl("ComboBoxSelectFolder");
+            ribbon.InvalidateControl("ComboBoxSelectMethod");
+        }
+
+        // Обработчик изменения состояния CheckBox
+        public void OnCheckBoxToggle(Office.IRibbonControl control, bool isPressed)
+        {
+            if (control.Id == "CheckBoxCatalog")
+            {
+                IsSpecifyDirectory = isPressed;
+                System.Diagnostics.Debug.WriteLine($"CheckBox 'Указывать каталог' изменен: {IsSpecifyDirectory}");
+                // Инвалидируем только ComboBoxSelectFolder
+                ribbon.InvalidateControl("ComboBoxSelectFolder");
+
+                if (!IsSpecifyDirectory)
+                {
+                    // Если чекбокс отключен, сбрасываем выбор комбобокса на "Каталог документу"
+                    SelectedDirectoryOption = "Каталог документу";
+                }
+            }
+            else if (control.Id == "CheckBoxName")
+            {
+                IsSpecifyName = isPressed;
+                System.Diagnostics.Debug.WriteLine($"CheckBox 'Указывать имя' изменен: {IsSpecifyName}");
+                // Инвалидируем только ComboBoxSelectMethod
+                ribbon.InvalidateControl("ComboBoxSelectMethod");
+
+                if (!IsSpecifyName)
+                {
+                    // Если чекбокс отключен, сбрасываем выбор комбобокса на "Всегда вручную"
+                    SelectedMethodOption = "Всегда вручную";
+                }
+            }
+        }
+
+        // Методы getPressed для чекбоксов
+        public bool GetCheckBoxCatalogPressed(Office.IRibbonControl control)
+        {
+            return IsSpecifyDirectory;
+        }
+
+        public bool GetCheckBoxNamePressed(Office.IRibbonControl control)
+        {
+            return IsSpecifyName;
+        }
+
+        // Методы getEnabled для комбобоксов
+        public bool GetComboBoxSelectFolderEnabled(Office.IRibbonControl control)
+        {
+            return IsSpecifyDirectory;
+        }
+
+        public bool GetComboBoxSelectMethodEnabled(Office.IRibbonControl control)
+        {
+            return IsSpecifyName;
+        }
+
+        // Обработчик изменения значения ComboBox
+        public void OnComboBoxChange(Office.IRibbonControl control, string selectedItem)
+        {
+            if (control.Id == "ComboBoxSelectFolder")
+            {
+                SelectedDirectoryOption = selectedItem;
+                System.Diagnostics.Debug.WriteLine($"ComboBox 'Выбрать каталог' выбран вариант: {SelectedDirectoryOption}");
+            }
+            else if (control.Id == "ComboBoxSelectMethod")
+            {
+                SelectedMethodOption = selectedItem;
+                System.Diagnostics.Debug.WriteLine($"ComboBox 'Метод' выбран вариант: {SelectedMethodOption}");
+            }
+        }
+
+        public int GetComboBoxItemCount(Office.IRibbonControl control)
+        {
+            switch (control.Id)
+            {
+                case "ComboBoxSelectFolder":
+                    return 5; // Количество элементов: 0-4
+                case "ComboBoxSelectMethod":
+                    return 1; // Пока только один элемент, добавим остальные ниже
+                default:
+                    return 0;
+            }
+        }
+
+        public string GetComboBoxItemLabel(Office.IRibbonControl control, int index)
+        {
+            switch (control.Id)
+            {
+                case "ComboBoxSelectFolder":
+                    switch (index)
+                    {
+                        case 0: return "Всегда выбирать";
+                        case 1: return "Новый каталог";
+                        case 2: return "Текущий каталог";
+                        case 3: return "Каталог документу";
+                        case 4: return "Каталог загрузки";
+                        default: return "";
+                    }
+                case "ComboBoxSelectMethod":
+                    switch (index)
+                    {
+                        case 0: return "Всегда вручную";
+                        // Добавьте дополнительные случаи здесь, если необходимо
+                        default: return "";
+                    }
+                default:
+                    return "";
+            }
+        }
+
+        // Добавление методов getText для комбобоксов
+        public string GetComboBoxSelectFolderText(Office.IRibbonControl control)
+        {
+            return SelectedDirectoryOption;
+        }
+
+        public string GetComboBoxSelectMethodText(Office.IRibbonControl control)
+        {
+            return SelectedMethodOption;
+        }
+
+        // Методы операций с книгами
         public void CreateWorkbook(Office.IRibbonControl control)
         {
-            if (workbooks != null)
-            {
-                workbooks.CreateWorkbook();
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("WorkbooksClass instance is null.");
-            }
+            workbooks.HandleDirectoryOption();
+            workbooks.CreateWorkbook();
         }
 
         public void DeleteWorkbook(Office.IRibbonControl control)
         {
-            if (workbooks != null)
-            {
-                workbooks.DeleteWorkbook();
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("WorkbooksClass instance is null.");
-            }
+            workbooks.HandleDirectoryOption();
+            workbooks.DeleteWorkbook();
         }
 
         public void CloseWorkbook(Office.IRibbonControl control)
         {
-            if (workbooks != null)
-            {
-                workbooks.CloseWorkbook();
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("WorkbooksClass instance is null.");
-            }
+            workbooks.HandleDirectoryOption();
+            workbooks.CloseWorkbook();
         }
 
         #endregion
