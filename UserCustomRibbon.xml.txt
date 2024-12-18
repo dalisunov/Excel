@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="Ribbon_Load">
+	<ribbon>
+		<tabs>
+			<tab id="CustomTab" label="Моя Надстройка">
+				<group id="WorkbookGroup" label="Операции с книгами">
+					<button id="CreateWorkbookButton"
+                            label="Создать книгу"
+                            screentip="Создать новую книгу"
+                            supertip="Создает новую рабочую книгу Excel"
+                            imageMso="FileNew"
+                            size="large"
+                            onAction="CreateWorkbook" />
+					<separator id="separator1" />
+					<button id="DeleteWorkbookButton"
+                            label="Удалить книгу"
+                            screentip="Удалить текущую книгу"
+                            supertip="Удаляет активную рабочую книгу без сохранения"
+                            imageMso="FileClose"
+                            size="normal"
+                            onAction="DeleteWorkbook" />
+					<button id="CloseWorkbookButton"
+                            label="Закрыть книгу"
+                            screentip="Закрыть текущую книгу"
+                            supertip="Закрывает активную рабочую книгу с сохранением и созданием резервной копии"
+                            imageMso="FileSaveAs"
+                            size="normal"
+                            onAction="CloseWorkbook" />
+				</group>
+				<!-- Здесь можно добавить дополнительные группы -->
+			</tab>
+		</tabs>
+	</ribbon>
+</customUI>

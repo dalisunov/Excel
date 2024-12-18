@@ -1,0 +1,120 @@
+// USERCUSTOMRIBBON.CS
+using Excel = Microsoft.Office.Interop.Excel;
+using Office = Microsoft.Office.Core;
+using System.Runtime.InteropServices;
+using System.IO;
+using System;
+using System.Reflection;
+
+namespace AddInVSTO
+{
+    [ComVisible(true)]
+    public class UserCustomRibbon : Office.IRibbonExtensibility
+    {
+        private Office.IRibbonUI ribbon;
+        private WorkbooksClass workbooks;
+        private Excel.Application excelApp;
+
+        public UserCustomRibbon()
+        {
+            // Не инициализируем excelApp и workbooks здесь
+        }
+
+        #region Элементы IRibbonExtensibility
+
+        public string GetCustomUI(string ribbonID)
+        {
+            try
+            {
+                return GetResourceText("AddInVSTO.UserCustomRibbon.xml");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Ошибка загрузки XML: " + ex.Message);
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region Обратные вызовы ленты
+
+        public void Ribbon_Load(Office.IRibbonUI ribbonUI)
+        {
+            this.ribbon = ribbonUI;
+
+            try
+            {
+                // Инициализация excelApp и workbooks после загрузки ленты
+                excelApp = Globals.ThisAddIn.Application;
+                workbooks = new WorkbooksClass(excelApp);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Ошибка при инициализации объектов Excel: " + ex.Message);
+            }
+        }
+
+        public void CreateWorkbook(Office.IRibbonControl control)
+        {
+            if (workbooks != null)
+            {
+                workbooks.CreateWorkbook();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("WorkbooksClass instance is null.");
+            }
+        }
+
+        public void DeleteWorkbook(Office.IRibbonControl control)
+        {
+            if (workbooks != null)
+            {
+                workbooks.DeleteWorkbook();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("WorkbooksClass instance is null.");
+            }
+        }
+
+        public void CloseWorkbook(Office.IRibbonControl control)
+        {
+            if (workbooks != null)
+            {
+                workbooks.CloseWorkbook();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("WorkbooksClass instance is null.");
+            }
+        }
+
+        #endregion
+
+        #region Вспомогательные методы
+
+        private static string GetResourceText(string resourceName)
+        {
+            Assembly asm = Assembly.GetExecutingAssembly();
+            string[] resourceNames = asm.GetManifestResourceNames();
+            for (int i = 0; i < resourceNames.Length; ++i)
+            {
+                if (string.Compare(resourceName, resourceNames[i], StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    using (StreamReader resourceReader = new StreamReader(asm.GetManifestResourceStream(resourceNames[i])))
+                    {
+                        if (resourceReader != null)
+                        {
+                            return resourceReader.ReadToEnd();
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        #endregion
+    }
+}

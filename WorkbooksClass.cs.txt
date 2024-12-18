@@ -1,0 +1,165 @@
+// WORKBOOKCLASS.CS
+using System;
+using System.IO;
+using Excel = Microsoft.Office.Interop.Excel;
+
+namespace AddInVSTO
+{
+    public class WorkbooksClass
+    {
+        private Excel.Application _excelApp;
+
+        public WorkbooksClass(Excel.Application excelApp)
+        {
+            _excelApp = excelApp;
+        }
+
+        public void CreateWorkbook()
+        {
+            if (_excelApp == null)
+            {
+                System.Diagnostics.Debug.WriteLine("Excel application instance is null.");
+                return;
+            }
+
+            try
+            {
+                // Создаём новую книгу
+                _excelApp.Workbooks.Add();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Ошибка при создании книги: " + ex.Message);
+            }
+            finally
+            {
+                // Освобождаем ресурсы
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+        }
+
+        public void DeleteWorkbook()
+        {
+            if (_excelApp == null || _excelApp.ActiveWorkbook == null)
+            {
+                System.Diagnostics.Debug.WriteLine("No active workbook to delete.");
+                return;
+            }
+
+            try
+            {
+                Excel.Workbook activeWorkbook = _excelApp.ActiveWorkbook;
+                string workbookName = activeWorkbook.Name;
+
+                // Показываем диалог подтверждения независимо от статуса сохранения
+                var result = System.Windows.Forms.MessageBox.Show(
+                    $"Вы уверены, что хотите удалить книгу {workbookName}?{Environment.NewLine}" +
+                    (!activeWorkbook.Saved ? Environment.NewLine + "ВНИМАНИЕ: В книге есть несохраненные изменения!" : ""),
+                    "Удаление книги",
+                    System.Windows.Forms.MessageBoxButtons.YesNo,
+                    System.Windows.Forms.MessageBoxIcon.Warning
+                );
+
+                if (result == System.Windows.Forms.DialogResult.Yes)
+                {
+                    // Закрываем книгу без сохранения
+                    activeWorkbook.Close(SaveChanges: false);
+                    System.Diagnostics.Debug.WriteLine($"Книга {workbookName} удалена.");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show(
+                    $"Ошибка при удалении книги: {ex.Message}",
+                    "Ошибка",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Error
+                );
+                System.Diagnostics.Debug.WriteLine("Ошибка при удалении книги: " + ex.Message);
+            }
+        }
+
+        public void CloseWorkbook()
+        {
+            if (_excelApp == null || _excelApp.ActiveWorkbook == null)
+            {
+                System.Diagnostics.Debug.WriteLine("No active workbook to close.");
+                return;
+            }
+
+            try
+            {
+                Excel.Workbook activeWorkbook = _excelApp.ActiveWorkbook;
+                string workbookName = activeWorkbook.Name;
+
+                // Проверяем, есть ли несохраненные изменения
+                if (!activeWorkbook.Saved)
+                {
+                    var saveResult = System.Windows.Forms.MessageBox.Show(
+                        $"Сохранить изменения в книге {workbookName}?",
+                        "Сохранение изменений",
+                        System.Windows.Forms.MessageBoxButtons.YesNoCancel,
+                        System.Windows.Forms.MessageBoxIcon.Question
+                    );
+
+                    if (saveResult == System.Windows.Forms.DialogResult.Cancel)
+                    {
+                        return;
+                    }
+
+                    if (saveResult == System.Windows.Forms.DialogResult.Yes)
+                    {
+                        // Если книга никогда не сохранялась, показываем диалог сохранения
+                        if (activeWorkbook.Path == "")
+                        {
+                            activeWorkbook.Save();
+                        }
+                        else
+                        {
+                            try
+                            {
+                                // Создаем резервную копию
+                                string backupPath = Path.Combine(
+                                    Path.GetTempPath(),
+                                    $"{Path.GetFileNameWithoutExtension(workbookName)}_backup_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(workbookName)}"
+                                );
+                                activeWorkbook.SaveCopyAs(backupPath);
+                                System.Diagnostics.Debug.WriteLine($"Резервная копия создана: {backupPath}");
+
+                                // Сохраняем основной файл
+                                activeWorkbook.Save();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Windows.Forms.MessageBox.Show(
+                                    $"Ошибка при создании резервной копии: {ex.Message}\nФайл будет сохранен без резервной копии.",
+                                    "Предупреждение",
+                                    System.Windows.Forms.MessageBoxButtons.OK,
+                                    System.Windows.Forms.MessageBoxIcon.Warning
+                                );
+                                activeWorkbook.Save();
+                            }
+                        }
+                    }
+                }
+
+                // Закрываем книгу
+                activeWorkbook.Close(SaveChanges: false); // SaveChanges: false, так как мы уже сохранили если нужно
+                System.Diagnostics.Debug.WriteLine($"Книга {workbookName} закрыта.");
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show(
+                    $"Ошибка при закрытии книги: {ex.Message}",
+                    "Ошибка",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Error
+                );
+                System.Diagnostics.Debug.WriteLine("Ошибка при закрытии книги: " + ex.Message);
+            }
+        }
+    }
+
+    // Здесь можно добавить другие методы для работы с книгами
+}
